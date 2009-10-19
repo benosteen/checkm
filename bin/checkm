@@ -23,6 +23,10 @@ def _option_parser():
                   action="store_true",
                   help="Log information to stdin as it goes",
                   default=False)
+    parser.add_option("-r", "--recursive", dest="recursive",
+                  action="store_true",
+                  help="Recursively scan through child directories",
+                  default=False)
     return parser
 
 if __name__ == '__main__':
@@ -34,6 +38,7 @@ if __name__ == '__main__':
         cmd = ""
     filename,filepath = "checkm.txt", "."
     alg = values.alg
+    recursive = values.recursive
     if values.verbose:
         logger.setLevel(logging.DEBUG)
     try:
@@ -44,7 +49,7 @@ if __name__ == '__main__':
 
     if cmd == 'write':
         r = checkm.CheckmReporter()
-        r.create_checkm_file(filepath, alg, filename, recursive=True, columns=5)
+        r.create_checkm_file(filepath, alg, filename, recursive=recursive, columns=5)
     elif cmd == 'check':
         r = checkm.CheckmReporter()
         try:
@@ -54,11 +59,19 @@ if __name__ == '__main__':
     elif cmd == 'print':
         r = checkm.CheckmReporter()
         s = StringIO()
-        s = r.create_checkm_file(filepath, alg, s, recursive=True, columns=5)
+        s = r.create_checkm_file(filepath, alg, s, recursive=recursive, columns=5)
         s.seek(0)
         print s.read()
         s.close()
     elif cmd == 'help' or cmd == "":
+        print "Try write, check or print"
+        print "write - writes the manifest to a file"
+        print "    - checkm write [checkm filename [filepath [algorithm]]]"
+        print "check - checks a filepath against a manifest"
+        print "    - checkm check [checkm filename [filepath]]"
+        print "print - print out the result of a checkm"
+        print "    - checkm print [checkm_filename [filepath [ algorithm ]]]"
+    else:
         print "unknown command: %s" % cmd
         print "Try write, check or print"
         print "write - writes the manifest to a file"
@@ -67,4 +80,3 @@ if __name__ == '__main__':
         print "    - checkm check [checkm filename [filepath]]"
         print "print - print out the result of a checkm"
         print "    - checkm print [checkm_filename [filepath [ algorithm ]]]"
-
