@@ -9,8 +9,20 @@ TOKEN NUMBER:    1                  2       3       4        5         6
 
 """
 
+COLUMNS = { 0:"SourceFileOrURL",
+            1:"Alg",
+            2:"Digest",
+            3:"Length",
+            4:"ModTime",
+            5:"TargetFileOrURL",
+            }
+
+from __future__ import with_statement
+
 import os, sys
 from stat import *
+
+import re
 
 from collections import defaultdict
 
@@ -25,6 +37,13 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('checkm')
 
 class DirectoryNotFound(Exception):
+    """The directory was not found, or is not accessible."""
+    def __init__(self, *arg, **kw):
+        self.context = (arg, kw)
+    def __repr__(self):
+        return self.context.__str__()
+        
+class CheckFailed(Exception):
     """The directory was not found, or is not accessible."""
     def __init__(self, *arg, **kw):
         self.context = (arg, kw)
@@ -66,23 +85,51 @@ class CheckmReporter(object):
 
     def check_checkm_hashes(self, scan_directory, checkm_filename):
         logger.info("Checking files against %s checkm manifest" % checkm_filename)
-        
+        parser = CheckmParser(checkm_filename)
+        scanner = CheckmScanner()
+        for row in parser:
+            scan_row = scanner.scan_path(row[0], row[1], len(row))
+            if row != scan_row:
+                raise CheckFailed(original=row, scan_result=scan_row)
 
 class CheckmParser(object):
     def __init__(self, checkm_file=None):
         self.status = False
+        self.lines = []
         if checkm_file:
             self.parse(checkm_file)
+    
+    def __iter__(self):
+        class Checkm_iter:
+            def __init__(self, lines):
+                self.lines = lines
+                self.last = 0
+            def __iter__(self):
+                return self
+            def next(self):
+                if self.last >= len(self.lines):         # threshhold terminator
+                    raise StopIteration
+                elif len(self.items) == 0:
+                    raise StopIteration
+                else:
+                    self.last += 1
+                    return self.lines[self.last-1]
+        return Checkm_iter(self.lines)
 
     def parse(self, checkm_file):
-        if hasattr(checkm_file, read):
-            return self._parse_filelike(checkm_file)
+        if not hasattr(checkm_file, readline):
+            with codecs.open(checkm_file, encoding='utf-8', mode="r") as check_fh:
+                self._parse_lines(check_fn)
         else:
-            # Assume dir path to file
-            return self._parse_file_from_path(checkm_file)
+            self._parse_lines(checkm_file)
 
-    def _parse_filelike(self, fh):
-        pass
+    def _parse_lines(self, fh):
+        self.lines = [] # clear the deck
+        for line in fh.readline():
+            if line.startswith('#'):
+                continue
+            tokens = re.split("\s+", line, 5) # 6 column max defn == 5 splits
+            self.lines.append(dict([(index, tokens[index]) for index in xrange(len(tokens))]))
 
 class CheckmScanner(object):
     HASHTYPES = ['md5', 'sha1', 'sha224','sha256','sha384','sha512']
