@@ -1,0 +1,70 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+import sys
+import optparse
+
+import logging
+
+import checkm
+
+from StringIO import StringIO
+
+# quieten the Checkm logger
+logger = checkm.logger
+logger.setLevel(logging.ERROR)
+
+def _option_parser():
+    parser = optparse.OptionParser()
+    parser.add_option("-a", "--algorithm", dest="alg",
+                  help="Algorithm to use to hash files",
+                  default="md5")
+    parser.add_option("-v", "--verbose", dest="verbose",
+                  action="store_true",
+                  help="Log information to stdin as it goes",
+                  default=False)
+    return parser
+
+if __name__ == '__main__':
+    o = _option_parser()
+    values, args = o.parse_args()
+    if len(args)>0:
+        cmd = args[0]
+    else:
+        cmd = ""
+    filename,filepath = "checkm.txt", "."
+    alg = values.alg
+    if values.verbose:
+        logger.setLevel(logging.DEBUG)
+    try:
+        filename = args[1]
+        filepath = args[2]
+    except IndexError:
+        pass
+
+    if cmd == 'write':
+        r = checkm.CheckmReporter()
+        r.create_checkm_file(filepath, alg, filename, recursive=True, columns=5)
+    elif cmd == 'check':
+        r = checkm.CheckmReporter()
+        try:
+            r.check_checkm_hashes(filepath, filename)
+        except checkm.CheckFailed, e:
+            print "Check failed: %s" % e
+    elif cmd == 'print':
+        r = checkm.CheckmReporter()
+        s = StringIO()
+        s = r.create_checkm_file(filepath, alg, s, recursive=True, columns=5)
+        s.seek(0)
+        print s.read()
+        s.close()
+    elif cmd == 'help' or cmd == "":
+        print "unknown command: %s" % cmd
+        print "Try write, check or print"
+        print "write - writes the manifest to a file"
+        print "    - checkm write [checkm filename [filepath [algorithm]]]"
+        print "check - checks a filepath against a manifest"
+        print "    - checkm check [checkm filename [filepath]]"
+        print "print - print out the result of a checkm"
+        print "    - checkm print [checkm_filename [filepath [ algorithm ]]]"
+

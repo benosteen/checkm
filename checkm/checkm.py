@@ -9,6 +9,8 @@ TOKEN NUMBER:    1                  2       3       4        5         6
 
 """
 
+from __future__ import with_statement
+
 COLUMNS = { 0:"SourceFileOrURL",
             1:"Alg",
             2:"Digest",
@@ -17,7 +19,6 @@ COLUMNS = { 0:"SourceFileOrURL",
             5:"TargetFileOrURL",
             }
 
-from __future__ import with_statement
 
 import os, sys
 from stat import *
@@ -77,11 +78,18 @@ class CheckmReporter(object):
                                                                                           algorithm, columns))
         report = self.scanner.scan_directory(scan_directory, algorithm, recursive=recursive, columns=columns)
         col_maxes = self._get_max_len(report)
-        with codecs.open(checkm_filename, encoding='utf-8', mode="w") as output:
-            output.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
+        if hasattr(checkm_filename, 'write'):
+            checkm_filename.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
             for line in report:
-                output.write("%s\n" % (self._space_line(line, col_maxes)))
-            output.write("\n")
+                checkm_filename.write("%s\n" % (self._space_line(line, col_maxes)))
+            checkm_filename.write("\n")
+            return checkm_filename
+        else:
+            with codecs.open(checkm_filename, encoding='utf-8', mode="w") as output:
+                output.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
+                for line in report:
+                    output.write("%s\n" % (self._space_line(line, col_maxes)))
+                output.write("\n")
 
     def check_checkm_hashes(self, scan_directory, checkm_filename):
         logger.info("Checking files against %s checkm manifest" % checkm_filename)
@@ -90,6 +98,8 @@ class CheckmReporter(object):
         for row in parser:
             scan_row = scanner.scan_path(row[0], row[1], len(row))
             if row != scan_row:
+                logger.info("Failed original: %s" % row)
+                logger.info("Current scan: %s" % scan_row)
                 raise CheckFailed(original=row, scan_result=scan_row)
 
 class CheckmParser(object):
@@ -109,7 +119,7 @@ class CheckmParser(object):
             def next(self):
                 if self.last >= len(self.lines):         # threshhold terminator
                     raise StopIteration
-                elif len(self.items) == 0:
+                elif len(self.lines) == 0:
                     raise StopIteration
                 else:
                     self.last += 1
@@ -117,19 +127,33 @@ class CheckmParser(object):
         return Checkm_iter(self.lines)
 
     def parse(self, checkm_file):
-        if not hasattr(checkm_file, readline):
+        if not hasattr(checkm_file, "readline"):
             with codecs.open(checkm_file, encoding='utf-8', mode="r") as check_fh:
-                self._parse_lines(check_fn)
+                self._parse_lines(check_fh)
         else:
             self._parse_lines(checkm_file)
 
     def _parse_lines(self, fh):
         self.lines = [] # clear the deck
-        for line in fh.readline():
-            if line.startswith('#'):
-                continue
-            tokens = re.split("\s+", line, 5) # 6 column max defn == 5 splits
-            self.lines.append(dict([(index, tokens[index]) for index in xrange(len(tokens))]))
+        line_buffer = ""
+        def _parse_line(line):
+            if not line.startswith('#'):
+                tokens = filter(lambda x: x, re.split("\s+", line, 5)) # 6 column max defn == 5 splits
+                logger.info(tokens)
+                if tokens:
+                    #self.lines.append(dict([(index, tokens[index]) for index in xrange(len(tokens))]))
+                    self.lines.append(tokens)
+
+        for chunk in fh.read(0x1000):
+            line_buffer = line_buffer + chunk
+            while True:
+                if not line_buffer:
+                    break
+                fragments = line_buffer.split('\n',1)
+                if len(fragments) == 1:
+                    break
+                _parse_line(fragments[0])
+                line_buffer = fragments[1]
 
 class CheckmScanner(object):
     HASHTYPES = ['md5', 'sha1', 'sha224','sha256','sha384','sha512']
