@@ -52,10 +52,13 @@ if __name__ == '__main__':
         r.create_checkm_file(filepath, alg, filename, recursive=recursive, columns=5)
     elif cmd == 'check':
         r = checkm.CheckmReporter()
-        try:
-            r.check_checkm_hashes(filepath, filename)
-        except checkm.CheckFailed, e:
-            print "Check failed: %s" % e
+        results = r.check_checkm_hashes(filepath, filename)
+        if results['fail']:
+            print "Checkm failed for the following:"
+            for filepath in results['fail']:
+                record = results['fail'][filepath]
+                print "Checkm record: %s" % (", ".join(record[0]))
+                print "doesn't match scan result: %s" % (", ".join(record[1]))
     elif cmd == 'print':
         r = checkm.CheckmReporter()
         s = StringIO()
@@ -64,7 +67,6 @@ if __name__ == '__main__':
         print s.read()
         s.close()
     elif cmd == 'help' or cmd == "":
-        print "Try write, check or print"
         print "write - writes the manifest to a file"
         print "    - checkm write [checkm filename [filepath [algorithm]]]"
         print "check - checks a filepath against a manifest"

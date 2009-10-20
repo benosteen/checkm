@@ -43,13 +43,6 @@ class DirectoryNotFound(Exception):
         self.context = (arg, kw)
     def __repr__(self):
         return self.context.__str__()
-        
-class CheckFailed(Exception):
-    """The directory was not found, or is not accessible."""
-    def __init__(self, *arg, **kw):
-        self.context = (arg, kw)
-    def __repr__(self):
-        return self.context.__str__()
 
 class CheckmReporter(object):
     COLUMN_NAMES = [u'# [@]SourceFileOrURL',u'Alg',u'Digest',u'Length',u'ModTime']
@@ -95,12 +88,16 @@ class CheckmReporter(object):
         logger.info("Checking files against %s checkm manifest" % checkm_filename)
         parser = CheckmParser(checkm_filename)
         scanner = CheckmScanner()
+        results = {'pass':[], 'fail':{}}
         for row in parser:
             scan_row = scanner.scan_path(row[0], row[1], len(row))
             if row != scan_row:
                 logger.info("Failed original: %s" % row)
                 logger.info("Current scan: %s" % scan_row)
-                raise CheckFailed(original=row, scan_result=scan_row)
+                results['fail'][row[0]] = (row, scan_row)
+            else:
+                results['pass'].append(row[0])
+        return results
 
 class CheckmParser(object):
     def __init__(self, checkm_file=None):
