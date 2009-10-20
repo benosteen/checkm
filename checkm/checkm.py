@@ -37,7 +37,7 @@ logging.basicConfig(level=logging.INFO)
 
 logger = logging.getLogger('checkm')
 
-class DirectoryNotFound(Exception):
+class NotFound(Exception):
     """The directory was not found, or is not accessible."""
     def __init__(self, *arg, **kw):
         self.context = (arg, kw)
@@ -104,7 +104,7 @@ class CheckmReporter(object):
                     output.write("%s\n" % (self._space_line(line, col_maxes)))
                 output.write("\n")
 
-    def check_bagit_hashes(self, scan_directory, bagit_filename, algorithm=None):
+    def check_bagit_hashes(self, bagit_filename, algorithm=None):
         logger.info("Checking files against '%s' bagit manifest" % bagit_filename)
         if algorithm == None:
             if hasattr(bagit_filename, 'read'):
@@ -116,13 +116,20 @@ class CheckmReporter(object):
         scanner = CheckmScanner()
         results = {'pass':[], 'fail':{}}
         for row in parser:
-            scan_row = scanner.scan_path(row[0], algorithm, 3)
-            if row[0] != scan_row[3]:
-                logger.info("Failed original: %s" % row)
-                logger.info("Current scan: %s" % scan_row)
-                results['fail'][row[1]] = (row, scan_row)
-            else:
-                results['pass'].append(row[1])
+            if row:
+                try:
+                    scan_row = scanner.scan_path(row[1], algorithm, 3)
+                    if row[0] != scan_row[2]:
+                        logger.info("Failed original: %s" % row)
+                        logger.info("Current scan: %s" % scan_row)
+                        results['fail'][row[1]] = (row, scan_row)
+                    else:
+                        results['pass'].append(row[1])
+                except NotFound:
+                    scan_row = "File not found"
+                    logger.info("Failed original: %s" % row)
+                    logger.info("But file not found at this path.")
+                    results['fail'][row[1]] = (row, scan_row)
         return results
 
     def check_checkm_hashes(self, scan_directory, checkm_filename):
@@ -131,13 +138,20 @@ class CheckmReporter(object):
         scanner = CheckmScanner()
         results = {'pass':[], 'fail':{}}
         for row in parser:
-            scan_row = scanner.scan_path(row[0], row[1], len(row))
-            if row != scan_row:
-                logger.info("Failed original: %s" % row)
-                logger.info("Current scan: %s" % scan_row)
-                results['fail'][row[0]] = (row, scan_row)
-            else:
-                results['pass'].append(row[0])
+            if row:
+                try:
+                    scan_row = scanner.scan_path(row[0], row[1], len(row))
+                    if row != scan_row:
+                        logger.info("Failed original: %s" % row)
+                        logger.info("Current scan: %s" % scan_row)
+                        results['fail'][row[0]] = (row, scan_row)
+                    else:
+                        results['pass'].append(row[0])
+                except NotFound:
+                    scan_row = "File not found"
+                    logger.info("Failed original: %s" % row)
+                    logger.info("But file not found at this path.")
+                    results['fail'][row[0]] = (row, scan_row)
         return results
 
 class BagitParser(object):
@@ -172,7 +186,7 @@ class BagitParser(object):
             self._parse_lines(fileobj)
         return self.lines
 
-    def _parse_lines(self, fileobj):
+    def _parse_lines(self, fh):
         self.lines = [] # clear the deck
         line_buffer = ""
         def _parse_line(line):
@@ -184,6 +198,16 @@ class BagitParser(object):
                     if tokens[1].startswith("*"):
                         tokens[1] = tokens[1][1:].strip()
                     self.lines.append(tokens)
+        for chunk in fh.read(0x1000):
+            line_buffer = line_buffer + chunk
+            while True:
+                if not line_buffer:
+                    break
+                fragments = line_buffer.split('\n',1)
+                if len(fragments) == 1:
+                    break
+                _parse_line(fragments[0])
+                line_buffer = fragments[1]
 
 class CheckmParser(object):
     def __init__(self, checkm_file=None):
@@ -256,7 +280,7 @@ class CheckmScanner(object):
                     report.append(self.scan_path(item_path, algorithm, columns))
             return report
         else:
-            raise DirectoryNotFound(directory_path=directory_path, recursive=recursive)
+            raise NotFound(directory_path=directory_path, recursive=True)
 
     def scan_path(self, item_path, algorithm, columns):
         if columns<3 or not isinstance(columns, int):
@@ -288,7 +312,9 @@ class CheckmScanner(object):
                     line.append(unicode(os.stat(item_path)[ST_MTIME]))
             return line
         except OSError:
-            raise DirectoryNotFound(directory_path=directory_path, recursive=recursive)
+            raise NotFound(item_path=item_path)
+        except IOError:
+            raise NotFound(item_path=item_path)
         except AttributeError:
             raise ValueError("This tool cannot perform hashtype %s" % algorithm)
         
@@ -298,5 +324,5 @@ class CheckmScanner(object):
                 return self.scan_tree(directory_path, algorithm, columns)
             return self.scan_local(directory_path, algorithm, columns)
         else:
-            raise DirectoryNotFound(directory_path=directory_path, recursive=recursive)
+            raise NotFound(directory_path=directory_path, recursive=recursive)
 

@@ -52,6 +52,10 @@ if __name__ == '__main__':
         pass
 
     if cmd == 'write':
+        try:
+            filepath = args[1]
+        except IndexError:
+            filepath = "."
         r = checkm.CheckmReporter()
         manifest_name = r.create_bagit_manifest(filepath, alg, 
                                                 recursive=recursive, 
@@ -59,15 +63,22 @@ if __name__ == '__main__':
         print "manifest '%s' created" % manifest_name
     elif cmd == 'check':
         r = checkm.CheckmReporter()
-        results = r.check_bagit_hashes(filepath, filename)
+        results = r.check_bagit_hashes(filename)
         if results['fail']:
             print "BagIT Manifest check failed for the following:"
             for filepath in results['fail']:
                 record = results['fail'][filepath]
                 print "Manifest record: %s" % (", ".join(record[0]))
-                print "doesn't match scan result: %s" % (", ".join(record[1]))
+                if isinstance(record[1], list):
+                    print "doesn't match scan result: %s" % (", ".join(record[1]))
+                else:
+                    print "Scan result is '%s'" % (record[1])
                 sys.exit("Failed")
     elif cmd == 'print':
+        try:
+            filepath = args[1]
+        except IndexError:
+            filepath = "."
         r = checkm.CheckmReporter()
         s = StringIO()
         manifest_name = r.create_bagit_manifest(filepath, alg, 

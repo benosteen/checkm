@@ -7,4 +7,4 @@ Checkm Docs - TODO
 
 __version__ = 0.1
 
-from checkm import DirectoryNotFound, CheckmParser, CheckmReporter, CheckmScanner, logger
+from checkm import *
