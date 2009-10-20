@@ -112,7 +112,7 @@ class CheckmReporter(object):
             m = re.search("manifest-(?P<alg>[^\.]+)\.txt", bagit_filename)
             if m != None:
                 algorithm = m.groupdict()['alg']
-        parser = BagitParser(checkm_filename)
+        parser = BagitParser(bagit_filename)
         scanner = CheckmScanner()
         results = {'pass':[], 'fail':{}}
         for row in parser:
