@@ -65,6 +65,26 @@ class CheckmReporter(object):
             spaced_line.append(u" "*spaces)
         return u"".join(spaced_line)
 
+    def create_bagit_manifest(self, scan_directory, algorithm, recursive=False, delimiter = "  ", filename=None):
+        if not filename:
+            filename = "manifest-%s.txt" % algorithm
+        logger.info("Creating bagit manifest file(%s) for dir(%s) with Alg:%s" % (filename,
+                                                                                          scan_directory,
+                                                                                          algorithm))
+        report = self.scanner.scan_directory(scan_directory, algorithm, recursive=recursive, columns=3)
+        if hasattr(filename, 'write'):
+            for line in report:
+                if line[2] != "d":
+                    filename.write("%s%s%s\n" % (line[2], delimiter, line[0]))
+            filename.write("\n")
+        else:
+            with codecs.open(filename, encoding='utf-8', mode="w") as output:
+                for line in report:
+                    if line[2] != "d":
+                        output.write("%s%s%s\n" % (line[2], delimiter, line[0]))
+                output.write("\n")
+        return filename
+
     def create_checkm_file(self, scan_directory, algorithm, checkm_filename, recursive=False, columns=3):
         logger.info("Creating checkm file(%s) for dir(%s) with Alg:%s and columns: %s" % (checkm_filename,
                                                                                           scan_directory,
@@ -84,6 +104,27 @@ class CheckmReporter(object):
                     output.write("%s\n" % (self._space_line(line, col_maxes)))
                 output.write("\n")
 
+    def check_bagit_hashes(self, scan_directory, bagit_filename, algorithm=None):
+        logger.info("Checking files against '%s' bagit manifest" % bagit_filename)
+        if algorithm == None:
+            if hasattr(bagit_filename, 'read'):
+                raise Exception("Need to supply the algorithm when passing a filelike object instead of a filename")
+            m = re.search("manifest-(?P<alg>[^\.]+)\.txt", bagit_filename)
+            if m != None:
+                algorithm = m.groupdict()['alg']
+        parser = BagitParser(checkm_filename)
+        scanner = CheckmScanner()
+        results = {'pass':[], 'fail':{}}
+        for row in parser:
+            scan_row = scanner.scan_path(row[0], algorithm, 3)
+            if row[0] != scan_row[3]:
+                logger.info("Failed original: %s" % row)
+                logger.info("Current scan: %s" % scan_row)
+                results['fail'][row[1]] = (row, scan_row)
+            else:
+                results['pass'].append(row[1])
+        return results
+
     def check_checkm_hashes(self, scan_directory, checkm_filename):
         logger.info("Checking files against %s checkm manifest" % checkm_filename)
         parser = CheckmParser(checkm_filename)
@@ -98,6 +139,51 @@ class CheckmReporter(object):
             else:
                 results['pass'].append(row[0])
         return results
+
+class BagitParser(object):
+    def __init__(self, bagit_file=None):
+        self.status = False
+        self.lines = []
+        if bagit_file:
+            self.parse(bagit_file)
+
+    def __iter__(self):
+        class Bagit_iter:
+            def __init__(self, lines):
+                self.lines = lines
+                self.last = 0
+            def __iter__(self):
+                return self
+            def next(self):
+                if self.last >= len(self.lines):         # threshhold terminator
+                    raise StopIteration
+                elif len(self.lines) == 0:
+                    raise StopIteration
+                else:
+                    self.last += 1
+                    return self.lines[self.last-1]
+        return Bagit_iter(self.lines)
+    
+    def parse(self, fileobj):
+        if not hasattr(fileobj, "read"):
+            with codecs.open(fileobj, encoding='utf-8', mode="r") as check_fh:
+                self._parse_lines(check_fh)
+        else:
+            self._parse_lines(fileobj)
+        return self.lines
+
+    def _parse_lines(self, fileobj):
+        self.lines = [] # clear the deck
+        line_buffer = ""
+        def _parse_line(line):
+            if not line.startswith('#'):
+                tokens = filter(lambda x: x, re.split("\s+", line, 1)) # 2 columns
+                logger.info(tokens)
+                if tokens:
+                    # handle "\s*\*" situation
+                    if tokens[1].startswith("*"):
+                        tokens[1] = tokens[1][1:].strip()
+                    self.lines.append(tokens)
 
 class CheckmParser(object):
     def __init__(self, checkm_file=None):
@@ -129,6 +215,7 @@ class CheckmParser(object):
                 self._parse_lines(check_fh)
         else:
             self._parse_lines(checkm_file)
+        return self.lines
 
     def _parse_lines(self, fh):
         self.lines = [] # clear the deck

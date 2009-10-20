@@ -27,6 +27,9 @@ def _option_parser():
                   action="store_true",
                   help="Recursively scan through child directories",
                   default=False)
+    parser.add_option("-d", "--delimiter", dest="delimiter",
+                  help="State the delimiter to use to separate checksum from filepath",
+                  default="  ")
     return parser
 
 if __name__ == '__main__':
@@ -36,9 +39,10 @@ if __name__ == '__main__':
         cmd = args[0]
     else:
         cmd = ""
-    filename,filepath = "checkm.txt", "."
+    filename,filepath = "manifest-md5.txt", "."
     alg = values.alg
     recursive = values.recursive
+    delimiter = values.delimiter
     if values.verbose:
         logger.setLevel(logging.DEBUG)
     try:
@@ -49,37 +53,42 @@ if __name__ == '__main__':
 
     if cmd == 'write':
         r = checkm.CheckmReporter()
-        r.create_checkm_file(filepath, alg, filename, recursive=recursive, columns=5)
+        manifest_name = r.create_bagit_manifest(filepath, alg, 
+                                                recursive=recursive, 
+                                                delimiter=delimiter)
+        print "manifest '%s' created" % manifest_name
     elif cmd == 'check':
         r = checkm.CheckmReporter()
-        results = r.check_checkm_hashes(filepath, filename)
+        results = r.check_bagit_hashes(filepath, filename)
         if results['fail']:
-            print "Checkm failed for the following:"
+            print "BagIT Manifest check failed for the following:"
             for filepath in results['fail']:
                 record = results['fail'][filepath]
-                print "Checkm record: %s" % (", ".join(record[0]))
+                print "Manifest record: %s" % (", ".join(record[0]))
                 print "doesn't match scan result: %s" % (", ".join(record[1]))
-                sys.exit("Failed checkm")
+                sys.exit("Failed")
     elif cmd == 'print':
         r = checkm.CheckmReporter()
         s = StringIO()
-        s = r.create_checkm_file(filepath, alg, s, recursive=recursive, columns=5)
+        manifest_name = r.create_bagit_manifest(filepath, alg, 
+                                                recursive=recursive, 
+                                                delimiter=delimiter, 
+                                                filename = s)
         s.seek(0)
         print s.read()
         s.close()
     elif cmd == 'help' or cmd == "":
         print "write - writes the manifest to a file"
-        print "    - checkm write [checkm filename [filepath]]"
+        print "    - bagitmanifest write [filepath]"
         print "check - checks a filepath against a manifest"
-        print "    - checkm check [checkm filename]"
-        print "print - print out the result of a checkm"
-        print "    - checkm print [checkm_filename [filepath]]"
+        print "    - bagitmanifest check [bagitmanifest filename]"
+        print "print - print out the result of a bagitmanifest"
+        print "    - bagitmanifest print [filepath]"
     else:
         print "unknown command: %s" % cmd
-        print "Try write, check or print"
         print "write - writes the manifest to a file"
-        print "    - checkm write [checkm filename [filepath]]"
+        print "    - bagitmanifest write [filepath]"
         print "check - checks a filepath against a manifest"
-        print "    - checkm check [checkm filename]"
-        print "print - print out the result of a checkm"
-        print "    - checkm print [checkm_filename [filepath]]"
+        print "    - bagitmanifest check [bagitmanifest filename [filepath]]"
+        print "print - print out the result of a bagitmanifest"
+        print "    - bagitmanifest print [filepath]"
