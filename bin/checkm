@@ -59,6 +59,7 @@ if __name__ == '__main__':
                 record = results['fail'][filepath]
                 print "Checkm record: %s" % (", ".join(record[0]))
                 print "doesn't match scan result: %s" % (", ".join(record[1]))
+                sys.exit("Failed checkm")
     elif cmd == 'print':
         r = checkm.CheckmReporter()
         s = StringIO()
