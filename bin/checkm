@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sys
+import os, sys
 import optparse
 
 import logging
@@ -15,7 +15,29 @@ logger = checkm.logger
 logger.setLevel(logging.ERROR)
 
 def _option_parser():
-    parser = optparse.OptionParser()
+    parser = optparse.OptionParser(usage = """%prog [options] command filenames
+
+Commands:
+
+checkm write [checkm filename (default:checkm.txt) [filepath (default='.')]]
+    - writes a checkm manifest file to disc for the files in the given filepath. 
+      Use -r to include all files under a given path in a single manifest.
+      
+checkm print [filepath (default='.')]
+    - As for 'write', but will print the manifest to the screen.
+      
+checkm multi [checkm filename (default:checkm.txt) [filepath (default='.')]]
+    - writes a checkm manifest file to disc for the files in the given filepath, recursively creating a manifest file within each subdirectory and using the '@' designation in the parent checkm files above it.
+      
+checkm check [checkm filename (default:checkm.txt)]
+    - checks the given checkm manifest against the files on disc.
+      Use -m to recursively scan through any multilevel checkm files it finds in this manifest as well.
+
+checkm remove_multi [checkm filename (default:checkm.txt)]
+    - scans through the checkm file, recursively gathering a list of all included checkm manifests, returning the list of files.
+      Use the option '-f' or '--force' to cause the tool to try to delete these checkm files.""",
+                                   description="""checkm - tool to create, check and remove checkm manifests"""
+                                    )
     parser.add_option("-a", "--algorithm", dest="alg",
                   help="Algorithm to use to hash files",
                   default="md5")
@@ -26,6 +48,14 @@ def _option_parser():
     parser.add_option("-r", "--recursive", dest="recursive",
                   action="store_true",
                   help="Recursively scan through child directories",
+                  default=False)
+    parser.add_option("-m", "--multi", dest="multi",
+                  action="store_false",
+                  help="Recursively scan through @Checkm manifests as well",
+                  default=True)
+    parser.add_option("-f", "--force", dest="f",
+                  action="store_true",
+                  help="Required when recursively deleting multilevel checkm files - if not added, the command will list the files it would've deleted",
                   default=False)
     return parser
 
@@ -39,6 +69,7 @@ if __name__ == '__main__':
     filename,filepath = "checkm.txt", "."
     alg = values.alg
     recursive = values.recursive
+    multi = values.multi
     if values.verbose:
         logger.setLevel(logging.DEBUG)
     try:
@@ -46,40 +77,64 @@ if __name__ == '__main__':
         filepath = args[2]
     except IndexError:
         pass
-
-    if cmd == 'write':
-        r = checkm.CheckmReporter()
-        r.create_checkm_file(filepath, alg, filename, recursive=recursive, columns=5)
-    elif cmd == 'check':
-        r = checkm.CheckmReporter()
-        results = r.check_checkm_hashes(filepath, filename)
-        if results['fail']:
-            print "Checkm failed for the following:"
-            for filepath in results['fail']:
-                record = results['fail'][filepath]
-                print "Checkm record: %s" % (", ".join(record[0]))
-                print "doesn't match scan result: %s" % (", ".join(record[1]))
-                sys.exit("Failed checkm")
-    elif cmd == 'print':
-        r = checkm.CheckmReporter()
-        s = StringIO()
-        s = r.create_checkm_file(filepath, alg, s, recursive=recursive, columns=5)
-        s.seek(0)
-        print s.read()
-        s.close()
-    elif cmd == 'help' or cmd == "":
-        print "write - writes the manifest to a file"
-        print "    - checkm write [checkm filename [filepath]]"
-        print "check - checks a filepath against a manifest"
-        print "    - checkm check [checkm filename]"
-        print "print - print out the result of a checkm"
-        print "    - checkm print [checkm_filename [filepath]]"
-    else:
-        print "unknown command: %s" % cmd
-        print "Try write, check or print"
-        print "write - writes the manifest to a file"
-        print "    - checkm write [checkm filename [filepath]]"
-        print "check - checks a filepath against a manifest"
-        print "    - checkm check [checkm filename]"
-        print "print - print out the result of a checkm"
-        print "    - checkm print [checkm_filename [filepath]]"
+    try:
+        if cmd == 'write':
+            r = checkm.CheckmReporter()
+            r.create_checkm_file(filepath, alg, filename, recursive=recursive, columns=5)
+        elif cmd == 'multi':
+            r = checkm.CheckmReporter()
+            r.create_multilevel_checkm(filepath, alg, filename, columns=5)
+        elif cmd == 'remove_multi':
+            # Convenience function - deadly though so requires -f to not do a dry run
+            # scans from a single checkm file and trys to delete the checkm files that are 
+            # linked in a tree under the first one.
+            r = checkm.CheckmReporter()
+            results = r.check_checkm_hashes(filepath, filename, ignore_multilevel=False)
+            
+            def _remove_checkm(filename):
+                if values.f:
+                    try:
+                        os.remove(filename)
+                        print "%s removed" % (filename)
+                    except OSError, e:
+                        print "Error deleting %s - %s" % (filename,e.__repr__())
+                else:
+                        print "%s NOT removed" % (filename)
+            
+            if not values.f:
+                print "# Dry run only - will list the files it would've tried to remove\n# Use '-f' to force removal."
+            _remove_checkm(os.path.join(filepath, filename))
+            for checkm_filepath in results['include']:
+                _remove_checkm(checkm_filepath)
+            if not values.f:
+                sys.exit("Files not deleted")
+        elif cmd == 'check':
+            r = checkm.CheckmReporter()
+            results = r.check_checkm_hashes(filepath, filename, ignore_multilevel=multi)
+            if results['include']:
+                if multi:
+                    print "Skipping included manifests: (use -m or --multi to scan these as well)"
+                    for item in results['include']:
+                        print "%s" % item
+            if results['fail']:
+                print "Checkm failed for the following:"
+                for filepath in results['fail']:
+                    record = results['fail'][filepath]
+                    print "Checkm record: %s" % (", ".join(record[0]))
+                    print "doesn't match scan result: %s" % (", ".join(record[1]))
+                    sys.exit("Failed checkm")
+        elif cmd == 'print':
+            r = checkm.CheckmReporter()
+            s = StringIO()
+            if filename != "checkm.txt":
+                filepath = filename
+            s = r.create_checkm_file(filepath, alg, s, recursive=recursive, columns=5)
+            s.seek(0)
+            print s.read()
+            s.close()
+        elif cmd == 'help' or cmd == "":
+            print "No command given (try 'check', 'write','multi','remove_multi', or 'print')"
+        else:
+            print "unknown command: %s" % cmd
+    except checkm.NotFound, e:
+        print "Not Found - %s" % e

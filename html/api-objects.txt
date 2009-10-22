@@ -5,7 +5,6 @@ checkm.S_IXGRP	checkm-module.html#S_IXGRP
 checkm.SF_NOUNLINK	checkm-module.html#SF_NOUNLINK
 checkm.S_IFLNK	checkm-module.html#S_IFLNK
 checkm.SF_SNAPSHOT	checkm-module.html#SF_SNAPSHOT
-checkm.UF_IMMUTABLE	checkm-module.html#UF_IMMUTABLE
 checkm.S_IXOTH	checkm-module.html#S_IXOTH
 checkm.ST_UID	checkm-module.html#ST_UID
 checkm.UF_NOUNLINK	checkm-module.html#UF_NOUNLINK
@@ -15,6 +14,7 @@ checkm.S_IXUSR	checkm-module.html#S_IXUSR
 checkm.ST_INO	checkm-module.html#ST_INO
 checkm.ST_NLINK	checkm-module.html#ST_NLINK
 checkm.S_IFBLK	checkm-module.html#S_IFBLK
+checkm.UF_IMMUTABLE	checkm-module.html#UF_IMMUTABLE
 checkm.S_IFDIR	checkm-module.html#S_IFDIR
 checkm.ST_ATIME	checkm-module.html#ST_ATIME
 checkm.__package__	checkm-module.html#__package__
@@ -35,6 +35,7 @@ checkm.S_ISVTX	checkm-module.html#S_ISVTX
 checkm.S_IFIFO	checkm-module.html#S_IFIFO
 checkm.UF_NODUMP	checkm-module.html#UF_NODUMP
 checkm.S_ENFMT	checkm-module.html#S_ENFMT
+checkm.COLUMNS	checkm-module.html#COLUMNS
 checkm.S_IEXEC	checkm-module.html#S_IEXEC
 checkm.ST_CTIME	checkm-module.html#ST_CTIME
 checkm.S_IWOTH	checkm-module.html#S_IWOTH
@@ -50,8 +51,22 @@ checkm.UF_APPEND	checkm-module.html#UF_APPEND
 checkm.checkm	checkm.checkm-module.html
 checkm.checkm.__package__	checkm.checkm-module.html#__package__
 checkm.checkm.logger	checkm.checkm-module.html#logger
+checkm.checkm.COLUMNS	checkm.checkm-module.html#COLUMNS
+checkm.checkm.BagitParser	checkm.checkm.BagitParser-class.html
+checkm.checkm.BagitParser._parse_lines	checkm.checkm.BagitParser-class.html#_parse_lines
+checkm.checkm.BagitParser.parse	checkm.checkm.BagitParser-class.html#parse
+checkm.checkm.BagitParser.__iter__	checkm.checkm.BagitParser-class.html#__iter__
+checkm.checkm.BagitParser.__init__	checkm.checkm.BagitParser-class.html#__init__
+checkm.checkm.CheckmParser	checkm.checkm.CheckmParser-class.html
+checkm.checkm.CheckmParser._parse_lines	checkm.checkm.CheckmParser-class.html#_parse_lines
+checkm.checkm.CheckmParser.parse	checkm.checkm.CheckmParser-class.html#parse
+checkm.checkm.CheckmParser.__iter__	checkm.checkm.CheckmParser-class.html#__iter__
+checkm.checkm.CheckmParser.__init__	checkm.checkm.CheckmParser-class.html#__init__
 checkm.checkm.CheckmReporter	checkm.checkm.CheckmReporter-class.html
+checkm.checkm.CheckmReporter.check_checkm_hashes	checkm.checkm.CheckmReporter-class.html#check_checkm_hashes
 checkm.checkm.CheckmReporter.COLUMN_NAMES	checkm.checkm.CheckmReporter-class.html#COLUMN_NAMES
+checkm.checkm.CheckmReporter.create_bagit_manifest	checkm.checkm.CheckmReporter-class.html#create_bagit_manifest
+checkm.checkm.CheckmReporter.check_bagit_hashes	checkm.checkm.CheckmReporter-class.html#check_bagit_hashes
 checkm.checkm.CheckmReporter.create_checkm_file	checkm.checkm.CheckmReporter-class.html#create_checkm_file
 checkm.checkm.CheckmReporter._get_max_len	checkm.checkm.CheckmReporter-class.html#_get_max_len
 checkm.checkm.CheckmReporter.__init__	checkm.checkm.CheckmReporter-class.html#__init__
@@ -62,6 +77,6 @@ checkm.checkm.CheckmScanner.HASHTYPES	checkm.checkm.CheckmScanner-class.html#HAS
 checkm.checkm.CheckmScanner.scan_path	checkm.checkm.CheckmScanner-class.html#scan_path
 checkm.checkm.CheckmScanner.scan_tree	checkm.checkm.CheckmScanner-class.html#scan_tree
 checkm.checkm.CheckmScanner.scan_directory	checkm.checkm.CheckmScanner-class.html#scan_directory
-checkm.checkm.DirectoryNotFound	checkm.checkm.DirectoryNotFound-class.html
-checkm.checkm.DirectoryNotFound.__repr__	checkm.checkm.DirectoryNotFound-class.html#__repr__
-checkm.checkm.DirectoryNotFound.__init__	checkm.checkm.DirectoryNotFound-class.html#__init__
+checkm.checkm.NotFound	checkm.checkm.NotFound-class.html
+checkm.checkm.NotFound.__repr__	checkm.checkm.NotFound-class.html#__repr__
+checkm.checkm.NotFound.__init__	checkm.checkm.NotFound-class.html#__init__
