@@ -15,7 +15,20 @@ logger = checkm.logger
 logger.setLevel(logging.ERROR)
 
 def _option_parser():
-    parser = optparse.OptionParser()
+    parser = optparse.OptionParser(usage = """%prog [options] command filenames
+
+Commands:
+
+%prog write [bagit manifest filename (default:manifest-md5.txt) [filepath (default='.')]]
+    - writes a bagit manifest file to disc for the files in the given filepath. 
+      Use -r to include all files under a given path in a single manifest.
+      
+%prog print [filepath (default='.')]
+    - As for 'write', but will print the manifest to the screen.
+      
+%prog check [bagit manifest filename (default:manifest-md5.txt)]
+    - checks the given bagit manifest against the files on disc.
+""")
     parser.add_option("-a", "--algorithm", dest="alg",
                   help="Algorithm to use to hash files",
                   default="md5")
@@ -60,7 +73,7 @@ if __name__ == '__main__':
         manifest_name = r.create_bagit_manifest(filepath, alg, 
                                                 recursive=recursive, 
                                                 delimiter=delimiter)
-        print "manifest '%s' created" % manifest_name
+        print "%s created" % manifest_name
     elif cmd == 'check':
         r = checkm.CheckmReporter()
         results = r.check_bagit_hashes(filename)
@@ -88,18 +101,5 @@ if __name__ == '__main__':
         s.seek(0)
         print s.read()
         s.close()
-    elif cmd == 'help' or cmd == "":
-        print "write - writes the manifest to a file"
-        print "    - bagitmanifest write [filepath]"
-        print "check - checks a filepath against a manifest"
-        print "    - bagitmanifest check [bagitmanifest filename]"
-        print "print - print out the result of a bagitmanifest"
-        print "    - bagitmanifest print [filepath]"
     else:
         print "unknown command: %s" % cmd
-        print "write - writes the manifest to a file"
-        print "    - bagitmanifest write [filepath]"
-        print "check - checks a filepath against a manifest"
-        print "    - bagitmanifest check [bagitmanifest filename [filepath]]"
-        print "print - print out the result of a bagitmanifest"
-        print "    - bagitmanifest print [filepath]"

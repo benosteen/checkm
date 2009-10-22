@@ -52,9 +52,38 @@ Options:
                         files - if not added, the command will lsit the files
                         it would've deleted
 
+bagitmanifest - cli script
+==========================
+
+Usage: bagitmanifest [options] command filenames
+
+Commands:
+
+bagitmanifest write [bagit manifest filename (default:manifest-md5.txt) [filepath (default='.')]]
+    - writes a bagit manifest file to disc for the files in the given filepath. 
+      Use -r to include all files under a given path in a single manifest.
+      
+bagitmanifest print [filepath (default='.')]
+    - As for 'write', but will print the manifest to the screen.
+      
+bagitmanifest check [bagit manifest filename (default:manifest-md5.txt)]
+    - checks the given bagit manifest against the files on disc.
+
+
+Options:
+  -h, --help            show this help message and exit
+  -a ALG, --algorithm=ALG
+                        Algorithm to use to hash files
+  -v, --verbose         Log information to stdin as it goes
+  -r, --recursive       Recursively scan through child directories
+  -d DELIMITER, --delimiter=DELIMITER
+                        State the delimiter to use to separate checksum from
+                        filepath
+
+
 API documentation - TODO!
 """
 
-__version__ = 0.1
+__version__ = 0.2.7
 
 from checkm import *

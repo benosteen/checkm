@@ -117,15 +117,21 @@ class CheckmReporter(object):
                                                                                           algorithm))
         report = self.scanner.scan_directory(scan_directory, algorithm, recursive=recursive, columns=3)
         if hasattr(filename, 'write'):
+            faked_filename = "manifest-%s.txt" % algorithm
             for line in report:
                 if line[2] != "d":
-                    filename.write("%s%s%s\n" % (line[2], delimiter, line[0]))
-            filename.write("\n")
+                    if os.path.abspath(line[0]) != os.path.abspath(faked_filename):
+                        filename.write("%s%s%s\n" % (line[2], delimiter, line[0]))
+                    else:
+                        logger.info("Manifest file match - scan line ignored")
         else:
             with codecs.open(filename, encoding='utf-8', mode="w") as output:
                 for line in report:
                     if line[2] != "d":
-                        output.write("%s%s%s\n" % (line[2], delimiter, line[0]))
+                        if os.path.abspath(line[0]) != os.path.abspath(filename):
+                            output.write("%s%s%s\n" % (line[2], delimiter, line[0]))
+                        else:
+                            logger.info("Manifest file match - scan line ignored")
                 output.write("\n")
         return filename
         
@@ -168,19 +174,19 @@ class CheckmReporter(object):
         if checkm_file != None and hasattr(checkm_file, 'write'):
             checkm_file.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
             for line in report:
-                logger.info("Checking that the scanned file is not the empty checkm file")
-                logger.info("Scanned file: %s  vs  Checkm filename: %s" % (line[0], checkm_filename))
-                if line[0] != checkm_filename:
+                if os.path.abspath(line[0]) != os.path.abspath(checkm_filename):
                     checkm_file.write("%s\n" % (self._space_line(line, col_maxes)))
                 else:
-                    logger.info("MATCH! - scan line ignored")
+                    logger.info("Manifest file match - scan line ignored")
             return checkm_file
         else:
             with codecs.open(checkm_filename, encoding='utf-8', mode="w") as output:
                 output.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
                 for line in report:
-                    if line[0] != os.path.join(scan_directory, checkm_filename):
+                    if os.path.abspath(line[0]) != os.path.abspath(checkm_filename):
                         output.write("%s\n" % (self._space_line(line, col_maxes)))
+                    else:
+                        logger.info("Manifest file match - scan line ignored")
                 output.write("\n")
 
     def check_bagit_hashes(self, bagit_filename, algorithm=None):
