@@ -16,10 +16,8 @@ html/checkm.checkm-module.html
 html/checkm.checkm-pysrc.html
 html/checkm.checkm.CheckmReporter-class.html
 html/checkm.checkm.CheckmScanner-class.html
-html/checkm.checkm.DirectoryNotFound-class.html
 html/class-tree.html
 html/crarr.png
-html/docs.zip
 html/epydoc.css
 html/epydoc.js
 html/frames.html
@@ -32,3 +30,5 @@ html/toc-checkm-module.html
 html/toc-checkm.checkm-module.html
 html/toc-everything.html
 html/toc.html
+tests/__init__.py
+tests/test.py

@@ -14,5 +14,6 @@ From - http://www.cdlib.org/inside/diglib/checkm/checkmspec.html - Checkm is a g
       url="http://packages.python.org/Checkm/",
       license="http://www.apache.org/licenses/LICENSE-2.0",
       packages=find_packages(),
+      test_suite = "tests.test.TestCheckm",
       )
 
