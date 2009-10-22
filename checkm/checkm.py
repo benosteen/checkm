@@ -242,7 +242,11 @@ class CheckmReporter(object):
                             row[0] = row[0][1:]
                             results['include'].append(row[0])
                         scan_row = scanner.scan_path(row[0], row[1], len(row))
-                        if row != scan_row:
+                        nomatch = False
+                        for expected, scanned in zip(row, scan_row):
+                            if expected != "-" and expected != scanned:
+                                nomatch = True
+                        if nomatch:
                             logger.info("Failed original: %s" % row)
                             logger.info("Current scan: %s" % scan_row)
                             results['fail'][row[0]] = (row, scan_row)
@@ -414,7 +418,7 @@ class CheckmParser(object):
         @param checkm_file:
         @type checkm_file:
         """
-        if not hasattr(checkm_file, "readline"):
+        if not hasattr(checkm_file, "read"):
             if os.path.isfile(checkm_file):
                 with codecs.open(checkm_file, encoding='utf-8', mode="r") as check_fh:
                     self._parse_lines(check_fh)
