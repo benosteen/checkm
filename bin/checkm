@@ -45,6 +45,10 @@ checkm remove_multi [checkm filename (default:checkm.txt)]
                   action="store_true",
                   help="Log information to stdin as it goes",
                   default=False)
+    parser.add_option("-c", "--checksumonly", dest="checksum",
+                  action="store_true",
+                  help="Only compare checksums, rather than check on all of the checkm line.",
+                  default=False)
     parser.add_option("-r", "--recursive", dest="recursive",
                   action="store_true",
                   help="Recursively scan through child directories",
@@ -70,6 +74,9 @@ if __name__ == '__main__':
     alg = values.alg
     recursive = values.recursive
     multi = values.multi
+    columns = None
+    if values.checksum:
+        columns = 3
     if values.verbose:
         logger.setLevel(logging.DEBUG)
     try:
@@ -110,7 +117,7 @@ if __name__ == '__main__':
                 sys.exit("Files not deleted")
         elif cmd == 'check':
             r = checkm.CheckmReporter()
-            results = r.check_checkm_hashes(filepath, filename, ignore_multilevel=multi)
+            results = r.check_checkm_hashes(filepath, filename, ignore_multilevel=multi, columns = columns)
             if results['include']:
                 if multi:
                     print "Skipping included manifests: (use -m or --multi to scan these as well)"
@@ -122,7 +129,7 @@ if __name__ == '__main__':
                     record = results['fail'][filepath]
                     print "Checkm record: %s" % (", ".join(record[0]))
                     print "doesn't match scan result: %s" % (", ".join(record[1]))
-                    sys.exit("Failed checkm")
+                sys.exit("Failed checkm")
         elif cmd == 'print':
             r = checkm.CheckmReporter()
             s = StringIO()

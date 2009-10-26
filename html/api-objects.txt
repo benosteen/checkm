@@ -63,14 +63,15 @@ checkm.checkm.CheckmParser.parse	checkm.checkm.CheckmParser-class.html#parse
 checkm.checkm.CheckmParser.__iter__	checkm.checkm.CheckmParser-class.html#__iter__
 checkm.checkm.CheckmParser.__init__	checkm.checkm.CheckmParser-class.html#__init__
 checkm.checkm.CheckmReporter	checkm.checkm.CheckmReporter-class.html
+checkm.checkm.CheckmReporter.__init__	checkm.checkm.CheckmReporter-class.html#__init__
 checkm.checkm.CheckmReporter.check_checkm_hashes	checkm.checkm.CheckmReporter-class.html#check_checkm_hashes
-checkm.checkm.CheckmReporter.COLUMN_NAMES	checkm.checkm.CheckmReporter-class.html#COLUMN_NAMES
-checkm.checkm.CheckmReporter.create_bagit_manifest	checkm.checkm.CheckmReporter-class.html#create_bagit_manifest
-checkm.checkm.CheckmReporter.check_bagit_hashes	checkm.checkm.CheckmReporter-class.html#check_bagit_hashes
 checkm.checkm.CheckmReporter.create_checkm_file	checkm.checkm.CheckmReporter-class.html#create_checkm_file
 checkm.checkm.CheckmReporter._get_max_len	checkm.checkm.CheckmReporter-class.html#_get_max_len
-checkm.checkm.CheckmReporter.__init__	checkm.checkm.CheckmReporter-class.html#__init__
+checkm.checkm.CheckmReporter.COLUMN_NAMES	checkm.checkm.CheckmReporter-class.html#COLUMN_NAMES
+checkm.checkm.CheckmReporter.create_bagit_manifest	checkm.checkm.CheckmReporter-class.html#create_bagit_manifest
+checkm.checkm.CheckmReporter.create_multilevel_checkm	checkm.checkm.CheckmReporter-class.html#create_multilevel_checkm
 checkm.checkm.CheckmReporter._space_line	checkm.checkm.CheckmReporter-class.html#_space_line
+checkm.checkm.CheckmReporter.check_bagit_hashes	checkm.checkm.CheckmReporter-class.html#check_bagit_hashes
 checkm.checkm.CheckmScanner	checkm.checkm.CheckmScanner-class.html
 checkm.checkm.CheckmScanner.scan_local	checkm.checkm.CheckmScanner-class.html#scan_local
 checkm.checkm.CheckmScanner.HASHTYPES	checkm.checkm.CheckmScanner-class.html#HASHTYPES
@@ -78,5 +79,6 @@ checkm.checkm.CheckmScanner.scan_path	checkm.checkm.CheckmScanner-class.html#sca
 checkm.checkm.CheckmScanner.scan_tree	checkm.checkm.CheckmScanner-class.html#scan_tree
 checkm.checkm.CheckmScanner.scan_directory	checkm.checkm.CheckmScanner-class.html#scan_directory
 checkm.checkm.NotFound	checkm.checkm.NotFound-class.html
+checkm.checkm.NotFound.__str__	checkm.checkm.NotFound-class.html#__str__
 checkm.checkm.NotFound.__repr__	checkm.checkm.NotFound-class.html#__repr__
 checkm.checkm.NotFound.__init__	checkm.checkm.NotFound-class.html#__init__

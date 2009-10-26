@@ -91,7 +91,7 @@ class TestCheckm(unittest.TestCase):
             self.dirnames.append(dirname)
         else:
             self.dirnames = [dirname]
-        for subdir in [['1'],['2'],['3'],['1','1'],['1','2'],['1','3'],['2','data']]:
+        for subdir in [['1'],['2'],['3'],['1','1'],['1','dada'],['1','3'],['1','1','foobar'],['1','3','data']]:
             os.mkdir(os.path.join(dirname, *subdir))
             for (d,subdirs,_) in os.walk(dirname, topdown=False):
                 with open(os.path.join(d,'m_checkm.txt'), "wb") as checkm_f:
@@ -127,20 +127,20 @@ class TestCheckm(unittest.TestCase):
     def test_empty(self):
         pass
 
-    def test_checkmp_emptyline(self):
+    def test_checkmp_emptyline_fromfilelike(self):
         s = StringIO(EMPTY_C)
         lines = self.checkm_p.parse(s)
         # Empty string should result in an empty list
         self.assertEqual(len(lines), 0)
         self.assertFalse(lines)
         
-    def test_checkmp_emptyline_file(self):
+    def test_checkmp_emptyline_fromfile(self):
         lines = self.pass_as_file(EMPTY_C, self.checkm_p.parse)
         # Empty string should result in an empty list
         self.assertEqual(len(lines), 0)
         self.assertFalse(lines)
         
-    def test_checkmp_simpleline(self):
+    def test_checkmp_simpleline_fromfilelike(self):
         s = StringIO(SINGLELINE_C_SIMPLE)
         lines = self.checkm_p.parse(s)
         self.assertEqual(len(lines), 1)
@@ -149,7 +149,7 @@ class TestCheckm(unittest.TestCase):
         self.assertEqual(line[1], '45aa56b8')
         self.assertEqual(line[2], 'md5')
         
-    def test_checkmp_simpleline(self):
+    def test_checkmp_simpleline_fromfile(self):
         lines = self.pass_as_file(SINGLELINE_C_SIMPLE, self.checkm_p.parse)
         self.assertEqual(len(lines), 1)
         line = lines[0]
@@ -157,17 +157,30 @@ class TestCheckm(unittest.TestCase):
         self.assertEqual(line[1], '45aa56b8')
         self.assertEqual(line[2], 'md5')
         
-    def test_checkmp_nospaceline(self):
+    def test_checkmp_nospaceline_fromfilelike(self):
         # Should 'parse' to 5 lines of 1 element each
         s = StringIO(MULTILINE_C_LIST_MANIFEST)
         lines = self.checkm_p.parse(s)
         self.assertEqual(len(lines), 5)
         self.assertEqual(len(lines[0]), 1)
 
-    def test_checkmp_loadsacolumns(self):
+    def test_checkmp_loadsacolumns_fromfilelike(self):
         # Should 'parse' to 5 lines of 1 element each
         s = StringIO("""one two three four five six six_still six_again\n""")
         lines = self.checkm_p.parse(s)
+        self.assertEqual(len(lines), 1)
+        self.assertEqual(len(lines[0]), 6)
+        self.assertEqual(lines[0][5], "six six_still six_again")
+        
+    def test_checkmp_nospaceline_fromfile(self):
+        # Should 'parse' to 5 lines of 1 element each
+        lines = self.pass_as_file(MULTILINE_C_LIST_MANIFEST, self.checkm_p.parse)
+        self.assertEqual(len(lines), 5)
+        self.assertEqual(len(lines[0]), 1)
+
+    def test_checkmp_loadsacolumns_fromfile(self):
+        # Should 'parse' to 5 lines of 1 element each
+        lines = self.pass_as_file("""one two three four five six six_still six_again\n""", self.checkm_p.parse)
         self.assertEqual(len(lines), 1)
         self.assertEqual(len(lines[0]), 6)
         self.assertEqual(lines[0][5], "six six_still six_again")
@@ -183,8 +196,8 @@ class TestCheckm(unittest.TestCase):
         checkm_file = os.path.join(dirname, "m_checkm.txt")
         report = self.reporter.check_checkm_hashes(dirname, checkm_file, ignore_multilevel=False)
         self.assertFalse(report['fail'])
-        self.assertEqual(len(report['pass']), 22)  # 22 files/dirs to check from that particular bag
-        self.assertEqual(len(report['include']), 7) # 7 m_checkm.txt files included
+        self.assertEqual(len(report['pass']), 25)  # 22 files/dirs to check from that particular bag
+        self.assertEqual(len(report['include']), 8) # 7 m_checkm.txt files included
 
 if __name__ == '__main__':
     unittest.main()

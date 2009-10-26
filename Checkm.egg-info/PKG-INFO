@@ -1,6 +1,6 @@
 Metadata-Version: 1.0
 Name: Checkm
-Version: 0.2.7
+Version: 0.3
 Summary: Checkm - create reports on the checksums of sets of files or URLs resources.
 Home-page: http://packages.python.org/Checkm/
 Author: Ben O'Steen

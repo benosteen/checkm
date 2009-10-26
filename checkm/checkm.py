@@ -142,9 +142,11 @@ class CheckmReporter(object):
         # Gather list of directories to scan
         # And their subdirectories
         # bottom up!
-        dirs = dict([(root, dirnames) for (root, dirnames, _) in os.walk(top_directory, topdown=False)])
+        dir_list = [(root, dirnames) for (root, dirnames, _) in os.walk(top_directory, topdown=False)]
+        dirs = dict(dir_list)
         # per directory
-        for dirname in dirs:
+        for (dirname,_) in dir_list:
+            logger.info('creating checkm file %s in %s' % (checkm_filename, dirname))
             with codecs.open(os.path.join(dirname, checkm_filename), encoding='utf-8', mode="w") as output:
                 self.create_checkm_file(dirname, 
                                         algorithm, 
@@ -154,11 +156,14 @@ class CheckmReporter(object):
                                         checkm_file=output)
                 subdir_report = []
                 for subdir in dirs[dirname]:
+                    logger.info('Checking sub-checkm file and adding it to the list of hashes in %s' % dirname)
                     try:
-                        line = self.scanner.scan_path(os.path.join(subdir, checkm_filename), algorithm, columns)
+                        line = self.scanner.scan_path(os.path.join(dirname, subdir, checkm_filename), algorithm, columns)
+                        logger.info("Line - %s" % line)
                         line[0] = '@%s' % (line[0])
                         subdir_report.append(line)
                     except Exception, e:
+                        print dirname, subdir, checkm_filename
                         print "Fail! %s" % e
                 col_maxes = self._get_max_len(subdir_report)
                 for line in subdir_report:
@@ -224,7 +229,7 @@ class CheckmReporter(object):
                     results['fail'][row[1]] = (row, scan_row)
         return results
 
-    def check_checkm_hashes(self, scan_directory, checkm_filename, ignore_multilevel=True):
+    def check_checkm_hashes(self, scan_directory, checkm_filename, ignore_multilevel=True, columns=None):
         """
         FIXME
         @param scan_directory:
@@ -232,7 +237,7 @@ class CheckmReporter(object):
         @param checkm_filename:
         @type checkm_filename:
         """
-        def _check_files_against_parser(parser):
+        def _check_files_against_parser(parser, columns=None):
             scanner = CheckmScanner()
             results = {'pass':[], 'fail':{}, 'include':[]}
             for row in parser:
@@ -241,7 +246,9 @@ class CheckmReporter(object):
                         if row[0].startswith('@'):
                             row[0] = row[0][1:]
                             results['include'].append(row[0])
-                        scan_row = scanner.scan_path(row[0], row[1], len(row))
+                        if not columns:
+                            columns = len(row)
+                        scan_row = scanner.scan_path(row[0], row[1], columns)
                         nomatch = False
                         for expected, scanned in zip(row, scan_row):
                             if expected != "-" and expected != scanned:
@@ -261,7 +268,7 @@ class CheckmReporter(object):
         
         logger.info("Checking files against %s checkm manifest" % checkm_filename)
         parser = CheckmParser(checkm_filename)
-        results = _check_files_against_parser(parser)
+        results = _check_files_against_parser(parser, columns)
         if ignore_multilevel:
             return results
         else:
@@ -270,7 +277,7 @@ class CheckmReporter(object):
             while checkm_list:
                 checkm_file = checkm_list.pop()
                 parser = CheckmParser(checkm_file)
-                additional_results = _check_files_against_parser(parser)
+                additional_results = _check_files_against_parser(parser, columns)
                 # Add to the passes
                 results['pass'].extend(additional_results['pass'])
                 # add to the overall list of 
@@ -535,8 +542,10 @@ class CheckmScanner(object):
                     line.append(unicode(os.stat(item_path)[ST_MTIME]))
             return line
         except OSError:
+            logger.info("item exists? %s" % os.path.exists(item_path))
             raise NotFound(item_path=item_path)
         except IOError:
+            logger.info("item exists? %s" % os.path.exists(item_path))
             raise NotFound(item_path=item_path)
         except AttributeError:
             raise ValueError("This tool cannot perform hashtype %s" % algorithm)
