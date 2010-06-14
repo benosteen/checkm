@@ -455,16 +455,11 @@ class CheckmParser(object):
                 if tokens:
                     self.lines.append(tokens)
 
-        for chunk in fh.read(0x1000):
-            line_buffer = line_buffer + chunk
-            while True:
-                if not line_buffer:
-                    break
-                fragments = line_buffer.split('\n',1)
-                if len(fragments) == 1:
-                    break
-                _parse_line(fragments[0])
-                line_buffer = fragments[1]
+        for line in fh.readlines():
+            if line.endswith("\n"):
+                _parse_line(line[:-1])
+            else:
+                _parse_line(line)
 
 class CheckmScanner(object):
     HASHTYPES = ['md5', 'sha1', 'sha224','sha256','sha384','sha512']
