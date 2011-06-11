@@ -18,7 +18,7 @@ EMPTY_C = "# Comments shouldn't be parsed\n"
 
 EMPTY_B = ""
 
-SINGLELINE_C_SIMPLE = "./filename           45aa56b8    md5\n"
+SINGLELINE_C_SIMPLE = "./filename   |   md5  |     45aa56b8\n"
 
 SINGLELINE_B_SIMPLE = "767bbc45aa56b8  ./filename\n"
 
@@ -78,11 +78,11 @@ class TestCheckm(unittest.TestCase):
         with open(os.path.join(dirname, "default_checkm.txt"), "wb") as checkm_f:
             checkm_f.write("#Meaningless comments\n# Should be ignored!\n")
             for (d,_,_) in os.walk(dirname):
-                checkm_f.write("%s md5 d\n" % d)
+                checkm_f.write("%s | md5 | d\n" % d)
                 with open(os.path.join(d,'foo.txt'), "wb") as output:
                     # write a file that has a known md5sum
                     output.write("12345678901234567890\n")
-                    checkm_f.write("%s md5 %s\n" % (os.path.join(d,'foo.txt'), FOO_TXT_MD5))
+                    checkm_f.write("%s| md5 |  %s\n" % (os.path.join(d,'foo.txt'), FOO_TXT_MD5))
         return dirname
 
     def create_multi_checkm_bag(self):
@@ -97,12 +97,12 @@ class TestCheckm(unittest.TestCase):
                 with open(os.path.join(d,'m_checkm.txt'), "wb") as checkm_f:
                     checkm_f.write("# Meaningless comment!\n")
                     for subd in subdirs:
-                        checkm_f.write("%s md5 d\n" % os.path.join(d,subd))
-                        checkm_f.write("@%s md5 -\n" % os.path.join(d,subd, 'm_checkm.txt'))
+                        checkm_f.write("%s|md5 |d\n" % os.path.join(d,subd))
+                        checkm_f.write("@%s |md5 |-\n" % os.path.join(d,subd, 'm_checkm.txt'))
                     with open(os.path.join(d,'foo.txt'), "wb") as output:
                         # write a file that has a known md5sum
                         output.write("12345678901234567890\n")
-                        checkm_f.write("%s md5 %s\n" % (os.path.join(d,'foo.txt'), FOO_TXT_MD5))
+                        checkm_f.write("%s| md5| %s\n" % (os.path.join(d,'foo.txt'), FOO_TXT_MD5))
         return dirname
 
     def remove_bag(self, dirname):
@@ -146,16 +146,16 @@ class TestCheckm(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         line = lines[0]
         self.assertEqual(line[0], './filename')
-        self.assertEqual(line[1], '45aa56b8')
-        self.assertEqual(line[2], 'md5')
+        self.assertEqual(line[2], '45aa56b8')
+        self.assertEqual(line[1], 'md5')
         
     def test_checkmp_simpleline_fromfile(self):
         lines = self.pass_as_file(SINGLELINE_C_SIMPLE, self.checkm_p.parse)
         self.assertEqual(len(lines), 1)
         line = lines[0]
         self.assertEqual(line[0], './filename')
-        self.assertEqual(line[1], '45aa56b8')
-        self.assertEqual(line[2], 'md5')
+        self.assertEqual(line[2], '45aa56b8')
+        self.assertEqual(line[1], 'md5')
         
     def test_checkmp_nospaceline_fromfilelike(self):
         # Should 'parse' to 5 lines of 1 element each
@@ -166,11 +166,11 @@ class TestCheckm(unittest.TestCase):
 
     def test_checkmp_loadsacolumns_fromfilelike(self):
         # Should 'parse' to 5 lines of 1 element each
-        s = StringIO("""one two three four five six six_still six_again\n""")
+        s = StringIO("""one |two| three| four| five| six| six_still| six_again\n""")
         lines = self.checkm_p.parse(s)
         self.assertEqual(len(lines), 1)
         self.assertEqual(len(lines[0]), 6)
-        self.assertEqual(lines[0][5], "six six_still six_again")
+        self.assertEqual(lines[0][5], "six| six_still| six_again")
         
     def test_checkmp_nospaceline_fromfile(self):
         # Should 'parse' to 5 lines of 1 element each
@@ -180,10 +180,10 @@ class TestCheckm(unittest.TestCase):
 
     def test_checkmp_loadsacolumns_fromfile(self):
         # Should 'parse' to 5 lines of 1 element each
-        lines = self.pass_as_file("""one two three four five six six_still six_again\n""", self.checkm_p.parse)
+        lines = self.pass_as_file("""one| two| three| four| five| six| six_still| six_again\n""", self.checkm_p.parse)
         self.assertEqual(len(lines), 1)
         self.assertEqual(len(lines[0]), 6)
-        self.assertEqual(lines[0][5], "six six_still six_again")
+        self.assertEqual(lines[0][5], "six| six_still| six_again")
 
     def test_check_checkm(self):
         dirname = self.create_toplevel_checkm_bag()

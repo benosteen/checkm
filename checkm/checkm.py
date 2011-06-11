@@ -448,7 +448,8 @@ class CheckmParser(object):
             @type line:
             """
             if not line.startswith('#'):
-                tokens = filter(lambda x: x, re.split("|", line, 5)) # 6 column max defn == 5 splits
+                tokens = filter(lambda x: x, re.split("\|", line, 5)) # 6 column max defn == 5 splits
+                tokens = [token.strip() for token in tokens]
                 logger.info(tokens)
                 if tokens:
                     self.lines.append(tokens)
