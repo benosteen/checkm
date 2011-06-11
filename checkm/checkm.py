@@ -5,7 +5,8 @@
 
 TODO! Sorry!
 
-                [@]SourceFileOrURL  Alg     Digest  Length   ModTime   TargetFileOrURL
+[@]SourceFileOrURL | Alg | Digest | Length | ModTime | TargetFileOrURL
+
 TOKEN NUMBER:    1                  2       3       4        5         6
 
 """
@@ -61,7 +62,7 @@ class NotFound(Exception):
         return self.context.__str__()
 
 class CheckmReporter(object):
-    COLUMN_NAMES = [u'# [@]SourceFileOrURL',u'Alg',u'Digest',u'Length',u'ModTime']
+    COLUMN_NAMES = [u'# [@]SourceFileOrURL',u'Alg',u'Digest',u'Length',u'ModTime', u'TargetFileOrURL']
     def __init__(self):
         """
         FIXME
@@ -91,10 +92,9 @@ class CheckmReporter(object):
         """
         spaced_line = []
         for index in xrange(len(line)):
-            spaced_line.append(line[index])
             spaces = col_maxes[index]-len(line[index])+4
-            spaced_line.append(u" "*spaces)
-        return u"".join(spaced_line)
+            spaced_line.append(line[index] + u" "*spaces)
+        return u" | ".join(spaced_line)
 
     def create_bagit_manifest(self, scan_directory, algorithm, recursive=False, delimiter = "  ", filename=None):
         """
@@ -125,6 +125,7 @@ class CheckmReporter(object):
                     else:
                         logger.info("Manifest file match - scan line ignored")
         else:
+            # TODO Check to see if file exists
             with codecs.open(filename, encoding='utf-8', mode="w") as output:
                 for line in report:
                     if line[2] != "d":
@@ -176,14 +177,11 @@ class CheckmReporter(object):
                                                                                           algorithm, columns))
         report = self.scanner.scan_directory(scan_directory, algorithm, recursive=recursive, columns=columns)
         col_maxes = self._get_max_len(report)
-        if checkm_file != None and hasattr(checkm_file, 'write'):
-            checkm_file.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
+        if checkm_filename != None and hasattr(checkm_filename, 'write'):
+            checkm_filename.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
             for line in report:
-                if os.path.abspath(line[0]) != os.path.abspath(checkm_filename):
-                    checkm_file.write("%s\n" % (self._space_line(line, col_maxes)))
-                else:
-                    logger.info("Manifest file match - scan line ignored")
-            return checkm_file
+                checkm_filename.write("%s\n" % (self._space_line(line, col_maxes)))
+            return checkm_filename
         else:
             with codecs.open(checkm_filename, encoding='utf-8', mode="w") as output:
                 output.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
@@ -450,7 +448,7 @@ class CheckmParser(object):
             @type line:
             """
             if not line.startswith('#'):
-                tokens = filter(lambda x: x, re.split("\s+", line, 5)) # 6 column max defn == 5 splits
+                tokens = filter(lambda x: x, re.split("|", line, 5)) # 6 column max defn == 5 splits
                 logger.info(tokens)
                 if tokens:
                     self.lines.append(tokens)
