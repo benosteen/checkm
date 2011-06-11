@@ -63,10 +63,11 @@ class NotFound(Exception):
 
 class CheckmReporter(object):
     COLUMN_NAMES = [u'# [@]SourceFileOrURL',u'Alg',u'Digest',u'Length',u'ModTime', u'TargetFileOrURL']
-    def __init__(self):
+    def __init__(self, flush_each_line = False):
         """
         FIXME
         """
+        self.fl = flush_each_line
         self.scanner = CheckmScanner()
 
     def _get_max_len(self, report):
@@ -122,6 +123,9 @@ class CheckmReporter(object):
                 if line[2] != "d":
                     if os.path.abspath(line[0]) != os.path.abspath(faked_filename):
                         filename.write("%s%s%s\n" % (line[2], delimiter, line[0]))
+                        logger.debug("Scanned file %s with %s -- %s" % (line[0], line[1], line[2]))
+                        if self.fl:
+                            filename.flush()
                     else:
                         logger.info("Manifest file match - scan line ignored")
         else:
@@ -131,6 +135,9 @@ class CheckmReporter(object):
                     if line[2] != "d":
                         if os.path.abspath(line[0]) != os.path.abspath(filename):
                             output.write("%s%s%s\n" % (line[2], delimiter, line[0]))
+                            logger.debug("Scanned file %s with %s -- %s" % (line[0], line[1], line[2]))
+                            if self.fl:
+                                output.flush()
                         else:
                             logger.info("Manifest file match - scan line ignored")
                 output.write("\n")
@@ -162,6 +169,7 @@ class CheckmReporter(object):
                         line = self.scanner.scan_path(os.path.join(dirname, subdir, checkm_filename), algorithm, columns)
                         logger.info("Line - %s" % line)
                         line[0] = '@%s' % (line[0])
+                        logger.debug("Adding a reference to a checkm manifest in directory:%s" % (line[0]))
                         subdir_report.append(line)
                     except Exception, e:
                         print dirname, subdir, checkm_filename
@@ -169,6 +177,8 @@ class CheckmReporter(object):
                 col_maxes = self._get_max_len(subdir_report)
                 for line in subdir_report:
                     output.write('%s\n' % (self._space_line(line, col_maxes)))
+                    if self.fl:
+                        output.flush()
                 output.write('\n')
 
     def create_checkm_file(self, scan_directory, algorithm, checkm_filename, recursive=False, columns=3, checkm_file=None):
@@ -181,6 +191,9 @@ class CheckmReporter(object):
             checkm_filename.write("%s \n" % (self._space_line(CheckmReporter.COLUMN_NAMES[:columns], col_maxes)))
             for line in report:
                 checkm_filename.write("%s\n" % (self._space_line(line, col_maxes)))
+                logger.debug("Scanned file %s with %s -- %s" % (line[0], line[1], line[2]))
+                if self.fl:
+                    checkm_filename.flush()
             return checkm_filename
         else:
             with codecs.open(checkm_filename, encoding='utf-8', mode="w") as output:
@@ -188,6 +201,9 @@ class CheckmReporter(object):
                 for line in report:
                     if os.path.abspath(line[0]) != os.path.abspath(checkm_filename):
                         output.write("%s\n" % (self._space_line(line, col_maxes)))
+                        logger.debug("Scanned file %s with %s -- %s" % (line[0], line[1], line[2]))
+                        if self.fl:
+                            output.flush()
                     else:
                         logger.info("Manifest file match - scan line ignored")
                 output.write("\n")
