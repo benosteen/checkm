@@ -14,8 +14,7 @@ from StringIO import StringIO
 logger = checkm.logger
 logger.setLevel(logging.ERROR)
 
-def _option_parser():
-    parser = optparse.OptionParser(usage = """%prog [options] command filenames
+USAGE = """[options] command filenames
 
 Commands:
 
@@ -35,7 +34,10 @@ checkm check [checkm filename (default:checkm.txt)]
 
 checkm remove_multi [checkm filename (default:checkm.txt)]
     - scans through the checkm file, recursively gathering a list of all included checkm manifests, returning the list of files.
-      Use the option '-f' or '--force' to cause the tool to try to delete these checkm files.""",
+      Use the option '-f' or '--force' to cause the tool to try to delete these checkm files."""
+
+def _option_parser():
+    parser = optparse.OptionParser(usage = "%prog " + USAGE,
                                    description="""checkm - tool to create, check and remove checkm manifests"""
                                     )
     parser.add_option("-a", "--algorithm", dest="alg",
@@ -127,8 +129,11 @@ if __name__ == '__main__':
                 print "Checkm failed for the following:"
                 for filepath in results['fail']:
                     record = results['fail'][filepath]
-                    print "Checkm record: %s" % (", ".join(record[0]))
-                    print "doesn't match scan result: %s" % (", ".join(record[1]))
+                    print "Checking: '%s'" % (", ".join(record[0]))
+                    if isinstance(record[1], list):
+                        print " -- doesn't match scan result: %s" % (", ".join(record[1]))
+                    else:
+                        print " -- " + record[1]
                 sys.exit("Failed checkm")
         elif cmd == 'print':
             r = checkm.CheckmReporter()
@@ -140,7 +145,7 @@ if __name__ == '__main__':
             print s.read()
             s.close()
         elif cmd == 'help' or cmd == "":
-            print "No command given (try 'check', 'write','multi','remove_multi', or 'print')"
+            print "checkm " + USAGE
         else:
             print "unknown command: %s" % cmd
     except checkm.NotFound, e:

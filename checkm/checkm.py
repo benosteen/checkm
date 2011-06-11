@@ -61,6 +61,28 @@ class NotFound(Exception):
         """
         return self.context.__str__()
 
+class CantOpen(Exception):
+    """The item or directory was either not found, or not accessible."""
+    def __init__(self, *arg, **kw):
+        """
+        FIXME
+        @param *arg:
+        @type *arg:
+        @param **kw:
+        @type **kw:
+        """
+        self.context = (arg, kw)
+    def __repr__(self):
+        """
+        FIXME
+        """
+        return self.context.__str__()
+    def __str__(self):
+        """
+        FIXME
+        """
+        return self.context.__str__()
+
 class CheckmReporter(object):
     COLUMN_NAMES = [u'# [@]SourceFileOrURL',u'Alg',u'Digest',u'Length',u'ModTime', u'TargetFileOrURL']
     def __init__(self, flush_each_line = False):
@@ -239,7 +261,12 @@ class CheckmReporter(object):
                 except NotFound:
                     scan_row = "File not found"
                     logger.info("Failed original: %s" % row)
-                    logger.info("But file not found at this path.")
+                    logger.error("File not found at this path - '%s'" % row[1])
+                    results['fail'][row[1]] = (row, scan_row)
+                except CantOpen:
+                    scan_row = "File could not be opened to read. Check file permissions."
+                    logger.info("Failed original: %s" % row)
+                    logger.error("File could not be opened to read. Check file permissions - '%s'" % row[1])
                     results['fail'][row[1]] = (row, scan_row)
         return results
 
@@ -263,6 +290,7 @@ class CheckmReporter(object):
                         if not columns:
                             columns = len(row)
                         scan_row = scanner.scan_path(row[0], row[1], columns)
+                            
                         nomatch = False
                         for expected, scanned in zip(row, scan_row):
                             if expected != "-" and expected != scanned:
@@ -276,11 +304,16 @@ class CheckmReporter(object):
                     except NotFound:
                         scan_row = "File not found"
                         logger.info("Failed original: %s" % row)
-                        logger.info("But file not found at this path.")
+                        logger.error("File not found at this path - '%s'" % row[0])
                         results['fail'][row[0]] = (row, scan_row)
+                    except CantOpen:
+                        scan_row = "File could not be opened to read. Check file permissions."
+                        logger.info("Failed original: %s" % row)
+                        logger.error("File could not be opened to read. Check file permissions - '%s'" % row[0])
+                        results['fail'][row[1]] = (row, scan_row)
             return results
         
-        logger.info("Checking files against %s checkm manifest" % checkm_filename)
+        logger.info("Checking files against '%s' checkm manifest" % checkm_filename)
         parser = CheckmParser(checkm_filename)
         results = _check_files_against_parser(parser, columns)
         if ignore_multilevel:
@@ -294,11 +327,14 @@ class CheckmReporter(object):
                 additional_results = _check_files_against_parser(parser, columns)
                 # Add to the passes
                 results['pass'].extend(additional_results['pass'])
+                logger.debug("%s files from within %s passed the check" % (len(additional_results['pass']), checkm_file))
                 # add to the overall list of 
                 results['include'].extend(additional_results['include'])
+                logger.debug("Found %s additional checkm manifests within %s" % (len(additional_results['include']), checkm_file))
                 checkm_list.extend(additional_results['include'])
                 # add to the fail dict
                 results['fail'].update(additional_results['fail'])
+                logger.debug("Found %s failed their check within %s" % (len(additional_results['fail']), checkm_file))
             return results
 
 class BagitParser(object):
@@ -373,7 +409,7 @@ class BagitParser(object):
             """
             if not line.startswith('#'):
                 tokens = filter(lambda x: x, re.split("\s+", line, 1)) # 2 columns
-                logger.info(tokens)
+                logger.debug("Parsed line to: '%s'" % ("', '".join(tokens)))
                 if tokens:
                     # handle "\s*\*" situation
                     if tokens[1].startswith("*"):
@@ -440,11 +476,16 @@ class CheckmParser(object):
         @type checkm_file:
         """
         if not hasattr(checkm_file, "read"):
-            if os.path.isfile(checkm_file):
-                with codecs.open(checkm_file, encoding='utf-8', mode="r") as check_fh:
-                    self._parse_lines(check_fh)
-            else:
-                raise NotFound(checkm_file=checkm_file)
+            try:
+                if os.path.isfile(checkm_file):
+                    with codecs.open(checkm_file, encoding='utf-8', mode="r") as check_fh:
+                        self._parse_lines(check_fh)
+                else:
+                    raise NotFound(checkm_file=checkm_file)
+            except IOError, e:
+                raise CantOpen(checkm_file)
+            except OSError, e:
+                raise NotFound(checkm_file)
         else:
             self._parse_lines(checkm_file)
         return self.lines
@@ -465,8 +506,8 @@ class CheckmParser(object):
             """
             if not line.startswith('#'):
                 tokens = filter(lambda x: x, re.split("\|", line, 5)) # 6 column max defn == 5 splits
-                tokens = [token.strip() for token in tokens]
-                logger.info(tokens)
+                tokens = [token.strip() for token in tokens]          # remove trailing and leading whitespace
+                logger.debug("Parsed line to: '%s'" % ("', '".join(tokens)))
                 if tokens:
                     self.lines.append(tokens)
 
@@ -491,7 +532,12 @@ class CheckmScanner(object):
         report = []
         for item in os.listdir(directory_path):
             item_path = os.path.join(directory_path, item)
-            report.append(self.scan_path(item_path, algorithm, columns))
+            try:
+                report.append(self.scan_path(item_path, algorithm, columns))
+            except CantOpen, e:
+                logger.error("Cannot open %s to check fixity" % item_path)
+            except NotFound, e:
+                logger.error("Cannot find %s to check fixity" % item_path)
         return report
 
     def scan_tree(self, directory_path, algorithm, columns):
@@ -507,8 +553,13 @@ class CheckmScanner(object):
         report = []
         if os.path.exists(directory_path):
             for (dirpath, dirnames, filenames) in os.walk(directory_path):
-                for item_path in [os.path.join(dirpath, x) for x in dirnames+filenames]:
-                    report.append(self.scan_path(item_path, algorithm, columns))
+                for item_path in [os.path.join(dirpath, x) for x in dirnames+filenames]:        
+                    try:
+                        report.append(self.scan_path(item_path, algorithm, columns))
+                    except CantOpen, e:
+                        logger.error("Cannot open %s to check fixity" % item_path)
+                    except NotFound, e:
+                        logger.error("Cannot find %s to check fixity" % item_path)
             return report
         else:
             raise NotFound(directory_path=directory_path, recursive=True)
@@ -552,11 +603,11 @@ class CheckmScanner(object):
                     line.append(unicode(os.stat(item_path)[ST_MTIME]))
             return line
         except OSError:
-            logger.info("item exists? %s" % os.path.exists(item_path))
+            logger.info("Had an OSError trying to open %s" % (item_path))
             raise NotFound(item_path=item_path)
         except IOError:
-            logger.info("item exists? %s" % os.path.exists(item_path))
-            raise NotFound(item_path=item_path)
+            logger.info("Had an IOError trying to open %s" % (item_path))
+            raise CantOpen(item_path=item_path)
         except AttributeError:
             raise ValueError("This tool cannot perform hashtype %s" % algorithm)
         
