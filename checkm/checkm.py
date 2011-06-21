@@ -3,7 +3,7 @@
 
 """Checksumming convenience classes
 
-TODO! Sorry!
+For Checkm v0.7
 
 [@]SourceFileOrURL | Alg | Digest | Length | ModTime | TargetFileOrURL
 
